@@ -432,6 +432,19 @@ async def test_orphan_tool_response_is_bad_request() -> None:
         )
 
 
+@pytest.mark.parametrize("count", [True, -1, "3"])
+async def test_malformed_usage_does_not_escape_as_invalid_usage(count: Any) -> None:
+    events = [
+        {
+            **_chunk({"text": "answer"}, finish="STOP"),
+            "usageMetadata": {"cachedContentTokenCount": count},
+        }
+    ]
+    with pytest.raises(ModelServerError, match="Malformed") as caught:
+        await _collect(_model(_transport(events)))
+    assert caught.value.retryable is False
+
+
 def test_key_environment_and_explicit_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GOOGLE_API_KEY", "google-key")
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)

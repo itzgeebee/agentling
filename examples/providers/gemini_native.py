@@ -223,9 +223,20 @@ class _TurnDecoder:
                 raise _classify(int(error.get("code", 500)), error)
             usage = event.get("usageMetadata")
             if isinstance(usage, dict):
-                self._usage.update(
-                    (k, v) for k, v in usage.items() if isinstance(v, int)
-                )
+                for key in (
+                    "promptTokenCount",
+                    "toolUsePromptTokenCount",
+                    "candidatesTokenCount",
+                    "thoughtsTokenCount",
+                    "cachedContentTokenCount",
+                ):
+                    if key in usage:
+                        value = usage[key]
+                        if type(value) is not int or value < 0:
+                            raise TypeError(
+                                "token counts must be non-negative integers"
+                            )
+                        self._usage[key] = value
             if (event.get("promptFeedback") or {}).get("blockReason"):
                 self._finish_reason = "SAFETY"
             candidates = event.get("candidates") or []
